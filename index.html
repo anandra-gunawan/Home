@@ -44,6 +44,7 @@
     transition:.15s;font-family:inherit;
   }
   .btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .btn:disabled{opacity:.55;cursor:wait;transform:none}
 
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
   .search{position:relative;flex:1;min-width:220px}
@@ -129,8 +130,13 @@
     margin:8px 0 14px;color:var(--text);
   }
   .modal-foot{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+  #updateStatus{
+    display:none;font-size:12.5px;color:var(--muted);
+    margin-top:14px;padding:9px 12px;border-radius:9px;
+    background:var(--accent-soft);text-align:center;
+  }
+  #updateStatus.show{display:block}
 
-  /* Tombol install PWA (muncul otomatis saat bisa diinstal) */
   #installBtn{display:none}
 </style>
 </head>
@@ -178,7 +184,7 @@
     <p>
       <b>Menambah / mengubah aplikasi:</b> buka file <code>index.html</code> di
       editor, lalu edit array <code>DAFTAR_APLIKASI</code> di bagian paling atas
-      blok <code>&lt;script&gt;</code>. Setiap aplikasi adalah satu objek:
+      blok <code>&lt;script&gt;</code>.
     </p>
     <pre>{
   nama:     "Nama Aplikasi",
@@ -189,10 +195,13 @@
 }</pre>
     <p>Urutan kartu otomatis mengikuti abjad nama aplikasi.</p>
     <p style="font-size:12px">
-      <b>Install di Android:</b> buka halaman lewat Chrome → menu ⋮ → <b>Install app</b>
-      (tombol "⬇️ Install" di atas juga muncul otomatis bila memenuhi syarat).
+      <b>Install di Android:</b> buka lewat Chrome → menu ⋮ → <b>Install app</b>.
+      Setelah terinstal, gunakan tombol <b>🔄 Perbarui</b> di bawah untuk
+      mendapatkan versi terbaru.
     </p>
+    <div id="updateStatus"></div>
     <div class="modal-foot">
+      <button class="btn" id="updateBtn">🔄 Perbarui</button>
       <button class="btn" id="aboutClose">Tutup</button>
     </div>
   </div>
@@ -224,14 +233,13 @@ function svgIconUrl(size){
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
 
-/* Inject <link rel="manifest"> */
 const manifestBlob = new Blob([JSON.stringify(pwaManifest)], { type: 'application/json' });
 const manifestLink = document.createElement('link');
 manifestLink.rel  = 'manifest';
 manifestLink.href = URL.createObjectURL(manifestBlob);
 document.head.appendChild(manifestLink);
 
-/* Daftarkan service worker (file sw.js harus ada di folder yang sama) */
+/* Daftarkan service worker */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
@@ -256,7 +264,6 @@ installBtn.addEventListener('click', async () => {
 });
 window.addEventListener('appinstalled', () => {
   installBtn.style.display = 'none';
-  console.log('PWA berhasil diinstal');
 });
 
 /* =========================================================
@@ -272,19 +279,15 @@ window.addEventListener('appinstalled', () => {
      deskripsi : keterangan singkat              (opsional)
      ikon      : emoji atau URL gambar           (opsional)
      kategori  : untuk filter chip               (opsional, default "Umum")
-
-   Contoh menambah aplikasi baru:
-     { nama:'Absensi', url:'https://absensi.contoh.com',
-       deskripsi:'Absensi karyawan', ikon:'🕒', kategori:'HRD' },
    ========================================================= */
 const DAFTAR_APLIKASI = [
 
   {
-    nama:      'Rupa',
-    url:       'https://anandra-gunawan.github.io/Rupa/',
-    deskripsi: 'desain gravis yang sederhana',
-    ikon:      '🎨',
-    kategori:  'editor'
+    nama:      'Dashboard Utama',
+    url:       'https://example.com',
+    deskripsi: 'Panel monitoring & statistik',
+    ikon:      '📊',
+    kategori:  'Internal'
   },
 
   {
@@ -296,21 +299,14 @@ const DAFTAR_APLIKASI = [
   },
 
   {
-    nama:      'Nota Elegan',
-    url:       'https://anandra-gunawan.github.io/nota_elegan/',
-    deskripsi: 'tulis nota dengan cepat dan screenshoot',
-    ikon:      '📝',
-    kategori:  'Gudang'
-  },
-    {
-    nama:      'calc',
-    url:       'https://anandra-gunawan.github.io/Calc/',
-    deskripsi: 'kalkulator sederhana tapi kuat',
-    ikon:      '🧮',
+    nama:      'Manajemen Stok',
+    url:       'https://example.com',
+    deskripsi: 'Kelola persediaan barang',
+    ikon:      '📦',
     kategori:  'Gudang'
   },
 
-  /* ↕️ Tambahkan aplikasi baru di bawah sini, ikuti format di atas */
+  /* ↕️ Tambahkan aplikasi baru di bawah sini */
 
 ];
 /* =========================================================
@@ -391,9 +387,26 @@ applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 themeBtn.onclick = () =>
   applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 
+/* =========================================================
+   MODAL TENTANG + FITUR PERBARUI
+   ========================================================= */
 const aboutOverlay = document.getElementById('aboutOverlay');
-document.getElementById('aboutBtn').onclick = () => aboutOverlay.classList.add('show');
-document.getElementById('aboutClose').onclick = () => aboutOverlay.classList.remove('show');
+const updateBtn    = document.getElementById('updateBtn');
+const updateStatus = document.getElementById('updateStatus');
+
+function setStatus(text){
+  if(!text){ updateStatus.classList.remove('show'); updateStatus.textContent = ''; return; }
+  updateStatus.textContent = text;
+  updateStatus.classList.add('show');
+}
+
+document.getElementById('aboutBtn').onclick = () => {
+  setStatus('');
+  aboutOverlay.classList.add('show');
+};
+document.getElementById('aboutClose').onclick = () => {
+  aboutOverlay.classList.remove('show');
+};
 aboutOverlay.addEventListener('click', e => {
   if(e.target === aboutOverlay) aboutOverlay.classList.remove('show');
 });
@@ -401,6 +414,60 @@ document.addEventListener('keydown', e => {
   if(e.key === 'Escape') aboutOverlay.classList.remove('show');
 });
 
+/* Cek & jalankan pembaruan */
+updateBtn.addEventListener('click', async () => {
+  updateBtn.disabled = true;
+  const originalText = updateBtn.textContent;
+  updateBtn.textContent = '⏳ Memeriksa...';
+  setStatus('Memeriksa versi terbaru...');
+
+  try {
+    if(!('serviceWorker' in navigator)){
+      // Browser tanpa SW — cukup reload
+      setStatus('Memuat ulang...');
+      location.reload();
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.getRegistration();
+
+    if(reg){
+      try { await reg.update(); } catch(_) { /* offline, abaikan */ }
+
+      // Beri waktu SW baru untuk masuk status waiting
+      let waiting = reg.waiting;
+      if(!waiting){
+        await new Promise(r => setTimeout(r, 600));
+        waiting = reg.waiting;
+      }
+
+      if(waiting){
+        setStatus('Pembaruan ditemukan — menerapkan...');
+        await new Promise(resolve => {
+          navigator.serviceWorker.addEventListener('controllerchange', resolve, { once:true });
+          waiting.postMessage('SKIP_WAITING');
+        });
+        setStatus('Selesai, memuat ulang...');
+        setTimeout(() => location.reload(), 200);
+        return;
+      }
+    }
+
+    // Tidak ada SW baru → tetap reload supaya dapat versi fresh dari server
+    setStatus('Sudah versi terbaru — memuat ulang...');
+    setTimeout(() => location.reload(), 400);
+
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal memeriksa: ' + err.message);
+    updateBtn.disabled = false;
+    updateBtn.textContent = originalText;
+  }
+});
+
+/* =========================================================
+   START
+   ========================================================= */
 renderChips();
 render();
 </script>
