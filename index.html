@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portal Aplikasi</title>
+<meta name="theme-color" content="#6366f1">
 <style>
   :root{
     --bg:#0f1115; --card:#1c2029; --border:#2a3040;
@@ -23,10 +24,10 @@
     margin:0; background:var(--bg); color:var(--text);
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     transition:background .25s,color .25s;
+    -webkit-tap-highlight-color:transparent;
   }
   .container{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
 
-  /* ---------- Header ---------- */
   header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px}
   .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
   .brand .logo{
@@ -44,7 +45,6 @@
   }
   .btn:hover{border-color:var(--accent);transform:translateY(-1px)}
 
-  /* ---------- Toolbar ---------- */
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
   .search{position:relative;flex:1;min-width:220px}
   .search input{
@@ -55,7 +55,6 @@
   .search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   .search .ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.55;font-size:14px}
 
-  /* ---------- Chips kategori ---------- */
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
   .chip{
     cursor:pointer;padding:7px 14px;border-radius:999px;font-size:13px;
@@ -65,7 +64,6 @@
   .chip:hover{color:var(--text);border-color:var(--accent)}
   .chip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 
-  /* ---------- Grid kartu ---------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
   .card{
     position:relative;display:flex;gap:14px;padding:18px;
@@ -102,11 +100,9 @@
     border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;
   }
 
-  /* ---------- Empty state ---------- */
   .empty{text-align:center;padding:70px 20px;color:var(--muted);display:none}
   .empty .big{font-size:46px;margin-bottom:12px;opacity:.6}
 
-  /* ---------- Modal ---------- */
   .overlay{
     position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
     display:grid;place-items:center;padding:20px;z-index:50;
@@ -133,6 +129,9 @@
     margin:8px 0 14px;color:var(--text);
   }
   .modal-foot{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+
+  /* Tombol install PWA (muncul otomatis saat bisa diinstal) */
+  #installBtn{display:none}
 </style>
 </head>
 <body>
@@ -146,6 +145,7 @@
         <small id="counter">0 aplikasi</small>
       </div>
     </div>
+    <button class="btn" id="installBtn" title="Install sebagai aplikasi">⬇️ Install</button>
     <button class="btn" id="themeBtn" title="Ganti tema">🌙</button>
     <button class="btn" id="aboutBtn" title="Tentang portal">ℹ️ Tentang</button>
   </header>
@@ -176,8 +176,8 @@
       Klik kartu untuk membuka aplikasi di tab baru.
     </p>
     <p>
-      <b>Menambah / mengubah aplikasi:</b> buka file HTML ini di editor,
-      lalu edit array <code>DAFTAR_APLIKASI</code> di bagian paling atas
+      <b>Menambah / mengubah aplikasi:</b> buka file <code>index.html</code> di
+      editor, lalu edit array <code>DAFTAR_APLIKASI</code> di bagian paling atas
       blok <code>&lt;script&gt;</code>. Setiap aplikasi adalah satu objek:
     </p>
     <pre>{
@@ -188,6 +188,10 @@
   kategori: "Keuangan"
 }</pre>
     <p>Urutan kartu otomatis mengikuti abjad nama aplikasi.</p>
+    <p style="font-size:12px">
+      <b>Install di Android:</b> buka halaman lewat Chrome → menu ⋮ → <b>Install app</b>
+      (tombol "⬇️ Install" di atas juga muncul otomatis bila memenuhi syarat).
+    </p>
     <div class="modal-foot">
       <button class="btn" id="aboutClose">Tutup</button>
     </div>
@@ -196,10 +200,70 @@
 
 <script>
 /* =========================================================
+   ⭐ PENGATURAN PWA (AGAR BISA DIINSTAL DI ANDROID)
+   ========================================================= */
+const pwaManifest = {
+  name:       "Portal Aplikasi",
+  short_name: "Portal",
+  start_url:  location.origin + location.pathname,
+  scope:      location.origin + location.pathname.replace(/[^/]*$/, ''),
+  display:    "standalone",
+  background_color: "#0f1115",
+  theme_color:      "#6366f1",
+  icons: [
+    { src: svgIconUrl(192), sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+    { src: svgIconUrl(512), sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+  ]
+};
+
+function svgIconUrl(size){
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>` +
+              `<rect width='${size}' height='${size}' rx='${size*0.18}' fill='#6366f1'/>` +
+              `<text x='50%' y='58%' font-size='${size*0.55}' text-anchor='middle' ` +
+              `dominant-baseline='middle'>🚀</text></svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+/* Inject <link rel="manifest"> */
+const manifestBlob = new Blob([JSON.stringify(pwaManifest)], { type: 'application/json' });
+const manifestLink = document.createElement('link');
+manifestLink.rel  = 'manifest';
+manifestLink.href = URL.createObjectURL(manifestBlob);
+document.head.appendChild(manifestLink);
+
+/* Daftarkan service worker (file sw.js harus ada di folder yang sama) */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .catch(err => console.warn('Service worker gagal didaftarkan:', err));
+  });
+}
+
+/* Tombol Install otomatis */
+let deferredPrompt = null;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-flex';
+});
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') installBtn.style.display = 'none';
+  deferredPrompt = null;
+});
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+  console.log('PWA berhasil diinstal');
+});
+
+/* =========================================================
    ⭐⭐⭐  EDIT DAFTAR APLIKASI DI SINI  ⭐⭐⭐
    =========================================================
    Tambah / ubah / hapus aplikasi cukup di array ini.
-   Setiap aplikasi = satu baris objek { ... },
+   Setiap aplikasi = satu blok objek { ... },
    pisahkan antar objek dengan tanda koma.
 
    Keterangan field:
@@ -216,11 +280,11 @@
 const DAFTAR_APLIKASI = [
 
   {
-    nama:      'Rupa',
-    url:       'https://anandra-gunawan.github.io/Rupa/',
-    deskripsi: 'desain gravis yang sederhana',
-    ikon:      '🎨',
-    kategori:  'editor'
+    nama:      'Dashboard Utama',
+    url:       'https://example.com',
+    deskripsi: 'Panel monitoring & statistik',
+    ikon:      '📊',
+    kategori:  'Internal'
   },
 
   {
@@ -232,17 +296,10 @@ const DAFTAR_APLIKASI = [
   },
 
   {
-    nama:      'Nota Elegan',
-    url:       'https://anandra-gunawan.github.io/nota_elegan/',
-    deskripsi: 'tulis nota dengan cepat dan screenshoot',
-    ikon:      '📝',
-    kategori:  'Gudang'
-  },
-    {
-    nama:      'calc',
-    url:       'https://anandra-gunawan.github.io/Calc/',
-    deskripsi: 'kalkulator sederhana tapi kuat',
-    ikon:      '🧮',
+    nama:      'Manajemen Stok',
+    url:       'https://example.com',
+    deskripsi: 'Kelola persediaan barang',
+    ikon:      '📦',
     kategori:  'Gudang'
   },
 
@@ -256,13 +313,11 @@ const DAFTAR_APLIKASI = [
 const THEME_KEY = 'portal_theme';
 let filter = { q:'', category:'Semua' };
 
-/* Urutkan abjad */
 const apps = DAFTAR_APLIKASI
   .filter(a => a && a.nama && a.url)
   .slice()
   .sort((a,b) => a.nama.localeCompare(b.nama, 'id', { sensitivity:'base' }));
 
-/* Util */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -272,14 +327,12 @@ function iconHTML(icon){
   return esc(icon);
 }
 
-/* Elemen */
 const grid        = document.getElementById('grid');
 const chipsEl     = document.getElementById('chips');
 const emptyEl     = document.getElementById('empty');
 const counterEl   = document.getElementById('counter');
 const searchInput = document.getElementById('searchInput');
 
-/* Render chips kategori */
 function renderChips(){
   const cats = ['Semua', ...new Set(apps.map(a => a.kategori || 'Umum'))];
   chipsEl.innerHTML = cats.map(c =>
@@ -287,10 +340,8 @@ function renderChips(){
   ).join('');
 }
 
-/* Render grid */
 function render(){
   const q = filter.q.toLowerCase().trim();
-
   const list = apps.filter(a => {
     const hay = `${a.nama} ${a.deskripsi||''} ${a.kategori||''}`.toLowerCase();
     return (!q || hay.includes(q)) &&
@@ -313,31 +364,26 @@ function render(){
   counterEl.textContent = `${apps.length} aplikasi terdaftar`;
 }
 
-/* Pencarian & filter */
-searchInput.addEventListener('input', e => {
-  filter.q = e.target.value;
-  render();
-});
+searchInput.addEventListener('input', e => { filter.q = e.target.value; render(); });
 chipsEl.addEventListener('click', e => {
   const chip = e.target.closest('.chip');
   if(!chip) return;
   filter.category = chip.dataset.cat;
-  renderChips();
-  render();
+  renderChips(); render();
 });
 
-/* Tema */
 const themeBtn = document.getElementById('themeBtn');
 function applyTheme(t){
   document.documentElement.dataset.theme = t;
   themeBtn.textContent = t === 'dark' ? '🌙' : '☀️';
   localStorage.setItem(THEME_KEY, t);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.content = t === 'dark' ? '#0f1115' : '#ffffff';
 }
 applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 themeBtn.onclick = () =>
   applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 
-/* Tentang */
 const aboutOverlay = document.getElementById('aboutOverlay');
 document.getElementById('aboutBtn').onclick = () => aboutOverlay.classList.add('show');
 document.getElementById('aboutClose').onclick = () => aboutOverlay.classList.remove('show');
@@ -348,9 +394,8 @@ document.addEventListener('keydown', e => {
   if(e.key === 'Escape') aboutOverlay.classList.remove('show');
 });
 
-/* Start */
 renderChips();
 render();
 </script>
 </body>
-  </html>
+</html>
