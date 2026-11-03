@@ -1,7 +1,7 @@
 /* =========================================================
    ⭐ Naikkan angka VERSION setiap kali rilis versi baru.
    ========================================================= */
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const CACHE   = 'portal-' + VERSION;
 const ASSETS  = ['./', './index.html'];
 
